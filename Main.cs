@@ -75,7 +75,7 @@ namespace TournamentTool
         {
         }
 
-        public static class scoreObj()
+        class scoreObj
         {
             public static int missedint = 0;
 
@@ -90,6 +90,8 @@ namespace TournamentTool
             public static int validint = 0;
 
             public static int score = 0;
+
         }
+        
     }
 }
