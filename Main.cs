@@ -3,95 +3,176 @@ using BepInEx.IL2CPP;
 using HarmonyLib;
 using BestHTTP;
 using LitJson;
+using SimpleJSON;
 
 using UnityEngine;
 using Steamworks;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System;
 
 namespace TournamentTool
 {
     [BepInPlugin("TournamentTool", "TournamentTool", "0.1.2.0")]
     public class Main : BasePlugin
     {
-        public static GameObject inLevel;
+        public static BepInEx.Logging.ManualLogSource Logger;
 
-        public static bool PlayingTrack = false;
-
-        public static string SteamName = "";
-
-        public static string SteamID = "";
-
-        public static string client = "51.195.138.4";
-
-        public static int port = 11000;
-
-        public static bool acceptingScores = false;
-
-        public static LitJson. jsonObject;
-
-        public static string jsonObjectString = "";
-
-        public static JSONNode songList;
-
-        public static int list;
-        
         public override void Load()
         {
+            Logger = Log;
+            using (WebClient webClient = new WebClient())
+            {
+                string aJSON = webClient.DownloadString("https://www.questboard.xyz/SpinShare/acceptingScores.json");
+                JSONNode jsonnode = JSONNode.Parse(aJSON);
+                SpinTournament.acceptingScores = jsonnode["acceptingScores"].AsBool;
+            }
             Harmony.CreateAndPatchAll(typeof(plugins));
-        }
+        }    
+
         public class plugins
         {
-            [HarmonyPatch(typeof(Track), "CompleteSong"), HarmonyPostfix]
-            public static void CompleteSong_Postfix(Track __instance)
+            [HarmonyPatch(typeof(GameStateManager), nameof(GameStateManager.Awake)), HarmonyPostfix]
+            public static void OnLevelWasInitialized()
             {
-                PlayingTrack = false;
-                sendScoreData(score);
+                SpinTournament.SteamID = SteamUser.GetSteamID().ToString();
+                SpinTournament.SteamName = SteamFriends.GetPersonaName();
+                SpinTournament.jsonObjectString += "{";
+                SpinTournament.jsonObjectString += "\"score\":0,";
+                SpinTournament.jsonObjectString += "\"missed\":0,";
+                SpinTournament.jsonObjectString += "\"early\":0,";
+                SpinTournament.jsonObjectString += "\"late\":0,";
+                SpinTournament.jsonObjectString += "\"perfect\":0,";
+                SpinTournament.jsonObjectString += "\"valid\":0,";
+                SpinTournament.jsonObjectString += "\"multiplier\":0,";
+                SpinTournament.jsonObjectString = SpinTournament.jsonObjectString + "\"steamID\":\"" + SpinTournament.SteamID + "\",";
+                SpinTournament.jsonObjectString = SpinTournament.jsonObjectString + "\"steamName\":\"" + SpinTournament.SteamName + "\"";
+                SpinTournament.jsonObjectString += "}";
+                SpinTournament.jsonObject = JSONNode.Parse(SpinTournament.jsonObjectString);
+                Logger.LogMessage(SteamUser.GetSteamID().ToString());
             }
 
-            [HarmonyPatch(typeof(Track), "FailSong"), HarmonyPostfix]
-            public static void FailSong_Postfix(Track __instance)
+            [HarmonyPatch(typeof(Track), "PlayTrack"), HarmonyPostfix]
+            // Token: 0x06000114 RID: 276 RVA: 0x00005209 File Offset: 0x00003409
+            public static void PlayTrack_Postfix(Track __instance)
             {
-                PlayingTrack = false;
-                sendScoreData(score);
+                SpinTournament.PlayingTrack = true;
+                SpinTournament.resetdata();
             }
-            [HarmonyPatch(typeof(Track), "EnterPracticeMode"), HarmonyPostfix]
-            public static void EnterPracticeMode_Postfix(Track __instance)
+
+            [HarmonyPatch(typeof(Track), "CompleteSong"), HarmonyPostfix]
+            [HarmonyPatch(typeof(Track), "FailSong")]
+            public static void EndSongPostfix(Track __instance)
             {
-                PlayingTrack = false;
-                resetdata();
+                SpinTournament.PlayingTrack = false;
+                SpinTournament.sendScoreData(SpinTournament.score);
             }
-            [HarmonyPatch(typeof(Track), "AddScoreIfPossible"), HarmonyPostfix]
+
+            [HarmonyPatch(typeof(Track), "EnterPracticeMode"), HarmonyPostfix] 
+            [HarmonyPatch(typeof(Track), "StopTrack")]
+            public static void SetPlayingTrackAsFalseAndReset(Track __instance)
+            {
+                SpinTournament.PlayingTrack = false;
+                SpinTournament.resetdata();
+            }
+
+            [HarmonyPatch(typeof(TrackGameplayLogic), nameof(TrackGameplayLogic.AddScoreIfPossible)), HarmonyPostfix]
             public static void AddScoreIfPossible_Postfix(Track __instance, PlayState playState, int pointsToAdd, int comboIncrease, NoteTimingAccuracy noteTimingAccuracy, float trackTime, int noteIndex)
             {
-                if (PlayingTrack)
+                if (SpinTournament.PlayingTrack)
                 {
-                    score = SecuredInt.op_Implicit(playState.get_totalScore());
-                    sendScoreData(SecuredInt.op_Implicit(playState.get_totalScore()));
+                    SpinTournament.score = playState.scoreState.totalNoteScore._value;
+                    SpinTournament.sendScoreData(SpinTournament.score);
                 }
             }
 
         }
 
-        public static void sendScoreData(int score)
+        static class SpinTournament
         {
-        }
+            public static GameObject inLevel;
 
-        class scoreObj
-        {
+            // Token: 0x04000024 RID: 36
+            public static bool PlayingTrack = false;
+
+            // Token: 0x04000025 RID: 37
+            public static string SteamName = "";
+
+            // Token: 0x04000026 RID: 38
+            public static string SteamID = "";
+
+            // Token: 0x04000027 RID: 39
+            public static string client = "51.195.138.4";
+
+            // Token: 0x04000028 RID: 40
+            public static int port = 11000;
+
+            // Token: 0x04000029 RID: 41
             public static int missedint = 0;
 
+            // Token: 0x0400002A RID: 42
             public static int multiplier = 1;
 
+            // Token: 0x0400002B RID: 43
             public static int lateint = 0;
 
+            // Token: 0x0400002C RID: 44
             public static int earlyint = 0;
 
+            // Token: 0x0400002D RID: 45
             public static int perfectint = 0;
 
+            // Token: 0x0400002E RID: 46
             public static int validint = 0;
 
+            // Token: 0x0400002F RID: 47
             public static int score = 0;
 
-        }
-        
+            // Token: 0x04000030 RID: 48
+            public static bool acceptingScores = false;
+
+            // Token: 0x04000031 RID: 49
+            public static JSONNode jsonObject;
+
+            // Token: 0x04000032 RID: 50
+            public static string jsonObjectString = "";
+
+            // Token: 0x04000033 RID: 51
+            /*public static JSONNode songList;*/
+
+            // Token: 0x04000034 RID: 52
+            /*public static int list;*/
+            public static void resetdata()
+            {
+                SpinTournament.jsonObject["missed"] = 0;
+                SpinTournament.jsonObject["early"] = 0;
+                SpinTournament.jsonObject["late"] = 0;
+                SpinTournament.jsonObject["perfect"] = 0;
+                SpinTournament.jsonObject["valid"] = 0;
+                SpinTournament.jsonObject["multiplier"] = 1;
+                SpinTournament.sendScoreData(0);
+            }
+
+            public static void sendScoreData(int score)
+            {
+                bool flag = !SpinTournament.acceptingScores;
+                if (!flag)
+                {
+                    SpinTournament.jsonObject["score"] = score;
+                    UdpClient udpClient = new UdpClient(SpinTournament.client, SpinTournament.port);
+                    string str = SpinTournament.jsonObject.ToString();
+                    byte[] bytes = Encoding.ASCII.GetBytes("%%DataStart%%" + str + "%%DataEnd%%");
+                    try
+                    {
+                        udpClient.SendAsync(bytes, bytes.Length);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex.ToString());
+                    }
+                }
+            }
+        }        
     }
 }
