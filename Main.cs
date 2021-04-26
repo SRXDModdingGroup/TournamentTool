@@ -48,7 +48,7 @@ namespace TournamentTool
                 SpinTournament.jsonObjectString = SpinTournament.jsonObjectString + "\"steamName\":\"" + SpinTournament.SteamName + "\"";
                 SpinTournament.jsonObjectString += "}";
                 SpinTournament.jsonObject = JSONNode.Parse(SpinTournament.jsonObjectString);
-                Logger.LogMessage(SteamUser.GetSteamID().ToString());
+                Logger.LogMessage($"Welcome to the tournament, {SpinTournament.SteamName} (ID: {SpinTournament.SteamID}), GLHF!");
             }
 
             [HarmonyPatch(typeof(Track), "PlayTrack"), HarmonyPostfix]
