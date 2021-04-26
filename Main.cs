@@ -214,7 +214,7 @@ namespace TournamentTool
 
                         if (!t.IsAlive)
                         {
-                            sendDataThread(new { score });
+                            t.Start(new { score });
                         }
                     }
                     else
