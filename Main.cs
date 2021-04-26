@@ -245,7 +245,6 @@ namespace TournamentTool
                 SpinTournament.jsonObject["score"] = dSender.score;
                 UdpClient udpClient = new UdpClient(SpinTournament.client, SpinTournament.port);
                 string str = SpinTournament.jsonObject.ToString();
-                Logger.LogMessage(str);
                 byte[] bytes = Encoding.ASCII.GetBytes("%%DataStart%%" + str + "%%DataEnd%%");
                 try
                 {
