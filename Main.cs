@@ -87,6 +87,54 @@ namespace TournamentTool
                 }
             }
 
+            [HarmonyPatch(typeof(TrackGameplayFeedbackObjects), "PlayTimingFeedback"), HarmonyPrefix]
+
+            // Token: 0x06000116 RID: 278 RVA: 0x00005258 File Offset: 0x00003458
+            public static void PlayTimingFeedback_Prefix(PlayState playState, NoteTimingAccuracy noteTimingAccuracy)
+            {
+                bool flag = !SpinTournament.PlayingTrack;
+                if (!flag)
+                {
+                    SpinTournament.jsonObject["multiplier"] = playState.multiplier;
+                    bool flag2 = noteTimingAccuracy == NoteTimingAccuracy.Failed;
+                    if (flag2)
+                    {
+                        SpinTournament.jsonObject["missed"] = SpinTournament.jsonObject["missed"] + 1;
+                    }
+                    else
+                    {
+                        bool flag3 = noteTimingAccuracy == NoteTimingAccuracy.Early;
+                        if (flag3)
+                        {
+                            SpinTournament.jsonObject["early"] = SpinTournament.jsonObject["early"] + 1;
+                        }
+                        else
+                        {
+                            bool flag4 = noteTimingAccuracy == NoteTimingAccuracy.Late;
+                            if (flag4)
+                            {
+                                SpinTournament.jsonObject["late"] = SpinTournament.jsonObject["late"] + 1;
+                            }
+                            else
+                            {
+                                bool flag5 = noteTimingAccuracy == NoteTimingAccuracy.Perfect;
+                                if (flag5)
+                                {
+                                    SpinTournament.jsonObject["perfect"] = SpinTournament.jsonObject["perfect"] + 1;
+                                }
+                                else
+                                {
+                                    bool flag6 = noteTimingAccuracy == NoteTimingAccuracy.Valid;
+                                    if (flag6)
+                                    {
+                                        SpinTournament.jsonObject["valid"] = SpinTournament.jsonObject["valid"] + 1;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         static class SpinTournament
@@ -162,6 +210,7 @@ namespace TournamentTool
                     SpinTournament.jsonObject["score"] = score;
                     UdpClient udpClient = new UdpClient(SpinTournament.client, SpinTournament.port);
                     string str = SpinTournament.jsonObject.ToString();
+                    Logger.LogMessage(str);
                     byte[] bytes = Encoding.ASCII.GetBytes("%%DataStart%%" + str + "%%DataEnd%%");
                     try
                     {
