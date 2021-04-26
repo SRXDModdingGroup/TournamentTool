@@ -137,26 +137,6 @@ namespace TournamentTool
 
         static class SpinTournament
         {
-            public static void timerTick(object state) {
-                canSend = true;
-                timer.Change(Timeout.Infinite, Timeout.Infinite);
-                if (triedToSendInInvalidPeriod)
-                {
-                    Thread.Sleep(msInterval/2);
-                    if (!t.IsAlive)
-                    {
-                        sendDataThread(new { score });
-                    }
-                }
-                triedToSendInInvalidPeriod = false;
-            }
-
-            public static int msInterval = 500;
-            public static Timer timer = new Timer(timerTick, null, Timeout.Infinite, Timeout.Infinite);
-            public static bool canSend = true;
-            public static bool triedToSendInInvalidPeriod = false;
-            public static Thread t = new Thread(new ParameterizedThreadStart(sendDataThread));
-
             public static bool PlayingTrack = false;
 
             public static string SteamName = "";
@@ -207,19 +187,9 @@ namespace TournamentTool
                 bool flag = !SpinTournament.acceptingScores;
                 if (!flag)
                 {
-                    if (canSend) {
-                        canSend = false;
-                        timer.Change(msInterval, Timeout.Infinite);
 
-                        if (!t.IsAlive)
-                        {
                             sendDataThread(new { score });
-                        }
-                    }
-                    else
-                    {
-                        triedToSendInInvalidPeriod = true;
-                    }
+
                 }
             }
             /*public static void sendDataBypass(int score)
