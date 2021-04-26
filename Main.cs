@@ -4,7 +4,7 @@ using HarmonyLib;
 using BestHTTP;
 using LitJson;
 using SimpleJSON;
-
+using UnhollowerBaseLib;
 using UnityEngine;
 using Steamworks;
 using System.Net;
@@ -14,14 +14,17 @@ using System;
 
 namespace TournamentTool
 {
-    [BepInPlugin("TournamentTool", "TournamentTool", "0.1.2.0")]
+    [BepInPlugin("TournamentTool", "TournamentTool", "0.1.0.0")]
     public class Main : BasePlugin
     {
         public static BepInEx.Logging.ManualLogSource Logger;
 
+        public static scoreObj scoreObject;
+
         public override void Load()
         {
             Logger = Log;
+            scoreObject = new scoreObj();
             using (WebClient webClient = new WebClient())
             {
                 string aJSON = webClient.DownloadString("https://www.questboard.xyz/SpinShare/acceptingScores.json");
@@ -36,21 +39,13 @@ namespace TournamentTool
             [HarmonyPatch(typeof(GameStateManager), nameof(GameStateManager.Awake)), HarmonyPostfix]
             public static void OnLevelWasInitialized()
             {
-                SpinTournament.SteamID = SteamUser.GetSteamID().ToString();
-                SpinTournament.SteamName = SteamFriends.GetPersonaName();
-                SpinTournament.jsonObjectString += "{";
-                SpinTournament.jsonObjectString += "\"score\":0,";
-                SpinTournament.jsonObjectString += "\"missed\":0,";
-                SpinTournament.jsonObjectString += "\"early\":0,";
-                SpinTournament.jsonObjectString += "\"late\":0,";
-                SpinTournament.jsonObjectString += "\"perfect\":0,";
-                SpinTournament.jsonObjectString += "\"valid\":0,";
-                SpinTournament.jsonObjectString += "\"multiplier\":0,";
-                SpinTournament.jsonObjectString = SpinTournament.jsonObjectString + "\"steamID\":\"" + SpinTournament.SteamID + "\",";
-                SpinTournament.jsonObjectString = SpinTournament.jsonObjectString + "\"steamName\":\"" + SpinTournament.SteamName + "\"";
-                SpinTournament.jsonObjectString += "}";
-                SpinTournament.jsonObject = JSONNode.Parse(SpinTournament.jsonObjectString);
-                Logger.LogMessage(SteamUser.GetSteamID().ToString());
+                scoreObject.steamID = SteamUser.GetSteamID().ToString();
+                scoreObject.steamName = SteamFriends.GetPersonaName();
+                SpinTournament.resetdata();
+
+
+                Logger.LogMessage(scoreObject.steamID);
+                Logger.LogMessage(JsonMapper.ToJson(scoreObject).ToString());
             }
 
             [HarmonyPatch(typeof(Track), "PlayTrack"), HarmonyPostfix]
@@ -66,7 +61,7 @@ namespace TournamentTool
             public static void EndSongPostfix(Track __instance)
             {
                 SpinTournament.PlayingTrack = false;
-                SpinTournament.sendScoreData(SpinTournament.score);
+                SpinTournament.sendScoreData(scoreObject.score);
             }
 
             [HarmonyPatch(typeof(Track), "EnterPracticeMode"), HarmonyPostfix] 
@@ -82,8 +77,8 @@ namespace TournamentTool
             {
                 if (SpinTournament.PlayingTrack)
                 {
-                    SpinTournament.score = playState.scoreState.totalNoteScore._value;
-                    SpinTournament.sendScoreData(SpinTournament.score);
+                    scoreObject.score = playState.scoreState.totalNoteScore._value;
+                    SpinTournament.sendScoreData(scoreObject.score);
                 }
             }
 
@@ -95,39 +90,39 @@ namespace TournamentTool
                 bool flag = !SpinTournament.PlayingTrack;
                 if (!flag)
                 {
-                    SpinTournament.jsonObject["multiplier"] = playState.multiplier;
+                    scoreObject.multiplier = playState.multiplier;
                     bool flag2 = noteTimingAccuracy == NoteTimingAccuracy.Failed;
                     if (flag2)
                     {
-                        SpinTournament.jsonObject["missed"] = SpinTournament.jsonObject["missed"] + 1;
+                        scoreObject.missed++;
                     }
                     else
                     {
                         bool flag3 = noteTimingAccuracy == NoteTimingAccuracy.Early;
                         if (flag3)
                         {
-                            SpinTournament.jsonObject["early"] = SpinTournament.jsonObject["early"] + 1;
+                            scoreObject.early++;
                         }
                         else
                         {
                             bool flag4 = noteTimingAccuracy == NoteTimingAccuracy.Late;
                             if (flag4)
                             {
-                                SpinTournament.jsonObject["late"] = SpinTournament.jsonObject["late"] + 1;
+                                scoreObject.late++;
                             }
                             else
                             {
                                 bool flag5 = noteTimingAccuracy == NoteTimingAccuracy.Perfect;
                                 if (flag5)
                                 {
-                                    SpinTournament.jsonObject["perfect"] = SpinTournament.jsonObject["perfect"] + 1;
+                                    scoreObject.perfect++;
                                 }
                                 else
                                 {
                                     bool flag6 = noteTimingAccuracy == NoteTimingAccuracy.Valid;
                                     if (flag6)
                                     {
-                                        SpinTournament.jsonObject["valid"] = SpinTournament.jsonObject["valid"] + 1;
+                                        scoreObject.valid++;
                                     }
                                 }
                             }
@@ -144,47 +139,14 @@ namespace TournamentTool
             // Token: 0x04000024 RID: 36
             public static bool PlayingTrack = false;
 
-            // Token: 0x04000025 RID: 37
-            public static string SteamName = "";
-
-            // Token: 0x04000026 RID: 38
-            public static string SteamID = "";
-
             // Token: 0x04000027 RID: 39
             public static string client = "51.195.138.4";
 
             // Token: 0x04000028 RID: 40
             public static int port = 11000;
 
-            // Token: 0x04000029 RID: 41
-            public static int missedint = 0;
-
-            // Token: 0x0400002A RID: 42
-            public static int multiplier = 1;
-
-            // Token: 0x0400002B RID: 43
-            public static int lateint = 0;
-
-            // Token: 0x0400002C RID: 44
-            public static int earlyint = 0;
-
-            // Token: 0x0400002D RID: 45
-            public static int perfectint = 0;
-
-            // Token: 0x0400002E RID: 46
-            public static int validint = 0;
-
-            // Token: 0x0400002F RID: 47
-            public static int score = 0;
-
             // Token: 0x04000030 RID: 48
             public static bool acceptingScores = false;
-
-            // Token: 0x04000031 RID: 49
-            public static JSONNode jsonObject;
-
-            // Token: 0x04000032 RID: 50
-            public static string jsonObjectString = "";
 
             // Token: 0x04000033 RID: 51
             /*public static JSONNode songList;*/
@@ -193,12 +155,12 @@ namespace TournamentTool
             /*public static int list;*/
             public static void resetdata()
             {
-                SpinTournament.jsonObject["missed"] = 0;
-                SpinTournament.jsonObject["early"] = 0;
-                SpinTournament.jsonObject["late"] = 0;
-                SpinTournament.jsonObject["perfect"] = 0;
-                SpinTournament.jsonObject["valid"] = 0;
-                SpinTournament.jsonObject["multiplier"] = 1;
+                scoreObject.missed = 0;
+                scoreObject.early = 0;
+                scoreObject.late = 0;
+                scoreObject.perfect = 0;
+                scoreObject.valid = 0;
+                scoreObject.multiplier = 0;
                 SpinTournament.sendScoreData(0);
             }
 
@@ -207,10 +169,9 @@ namespace TournamentTool
                 bool flag = !SpinTournament.acceptingScores;
                 if (!flag)
                 {
-                    SpinTournament.jsonObject["score"] = score;
+                    scoreObject.score = score;
                     UdpClient udpClient = new UdpClient(SpinTournament.client, SpinTournament.port);
-                    string str = SpinTournament.jsonObject.ToString();
-                    Logger.LogMessage(str);
+                    string str = JsonMapper.ToJson(scoreObject).ToString();
                     byte[] bytes = Encoding.ASCII.GetBytes("%%DataStart%%" + str + "%%DataEnd%%");
                     try
                     {
