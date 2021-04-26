@@ -50,6 +50,7 @@
     <Reference Include="Il2Cppmscorlib">
       <HintPath>BepInEx\unhollowed\Il2Cppmscorlib.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="Steamworks.NET, Version=3.7.1.6, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>BepInEx\unhollowed\Steamworks.NET.dll</HintPath>

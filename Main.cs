@@ -1,20 +1,18 @@
 ﻿using BepInEx;
 using BepInEx.IL2CPP;
 using HarmonyLib;
-using BestHTTP;
-using LitJson;
 using SimpleJSON;
-
 using UnityEngine;
 using Steamworks;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System;
+using System.Threading;
 
 namespace TournamentTool
 {
-    [BepInPlugin("TournamentTool", "TournamentTool", "0.1.2.0")]
+    [BepInPlugin("TournamentTool", "TournamentTool", "0.1.0.0")]
     public class Main : BasePlugin
     {
         public static BepInEx.Logging.ManualLogSource Logger;
@@ -139,54 +137,57 @@ namespace TournamentTool
 
         static class SpinTournament
         {
-            public static GameObject inLevel;
+            public static void timerTick(object state) {
+                canSend = true;
+                timer.Change(Timeout.Infinite, Timeout.Infinite);
+                if (triedToSendInInvalidPeriod)
+                {
+                    Thread.Sleep(msInterval/2);
+                    if (!t.IsAlive)
+                    {
+                        sendDataThread(new { score });
+                    }
+                }
+                triedToSendInInvalidPeriod = false;
+            }
 
-            // Token: 0x04000024 RID: 36
+            public static int msInterval = 500;
+            public static Timer timer = new Timer(timerTick, null, Timeout.Infinite, Timeout.Infinite);
+            public static bool canSend = true;
+            public static bool triedToSendInInvalidPeriod = false;
+
+            public static Thread t = new Thread(new ParameterizedThreadStart(sendDataThread));
+
             public static bool PlayingTrack = false;
 
-            // Token: 0x04000025 RID: 37
             public static string SteamName = "";
 
-            // Token: 0x04000026 RID: 38
             public static string SteamID = "";
 
-            // Token: 0x04000027 RID: 39
             public static string client = "51.195.138.4";
 
-            // Token: 0x04000028 RID: 40
             public static int port = 11000;
 
-            // Token: 0x04000029 RID: 41
             public static int missedint = 0;
 
-            // Token: 0x0400002A RID: 42
             public static int multiplier = 1;
 
-            // Token: 0x0400002B RID: 43
             public static int lateint = 0;
 
-            // Token: 0x0400002C RID: 44
             public static int earlyint = 0;
 
-            // Token: 0x0400002D RID: 45
             public static int perfectint = 0;
 
-            // Token: 0x0400002E RID: 46
             public static int validint = 0;
 
-            // Token: 0x0400002F RID: 47
             public static int score = 0;
 
-            // Token: 0x04000030 RID: 48
             public static bool acceptingScores = false;
 
-            // Token: 0x04000031 RID: 49
             public static JSONNode jsonObject;
 
-            // Token: 0x04000032 RID: 50
             public static string jsonObjectString = "";
 
-            // Token: 0x04000033 RID: 51
             /*public static JSONNode songList;*/
 
             // Token: 0x04000034 RID: 52
@@ -207,19 +208,52 @@ namespace TournamentTool
                 bool flag = !SpinTournament.acceptingScores;
                 if (!flag)
                 {
-                    SpinTournament.jsonObject["score"] = score;
-                    UdpClient udpClient = new UdpClient(SpinTournament.client, SpinTournament.port);
-                    string str = SpinTournament.jsonObject.ToString();
-                    Logger.LogMessage(str);
-                    byte[] bytes = Encoding.ASCII.GetBytes("%%DataStart%%" + str + "%%DataEnd%%");
-                    try
-                    {
-                        udpClient.SendAsync(bytes, bytes.Length);
+                    if (canSend) {
+                        canSend = false;
+                        timer.Change(msInterval, Timeout.Infinite);
+
+                        if (!t.IsAlive)
+                        {
+                            sendDataThread(new { score });
+                        }
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        Logger.LogError(ex.ToString());
+                        triedToSendInInvalidPeriod = true;
                     }
+                }
+            }
+            /*public static void sendDataBypass(int score)
+            {
+                SpinTournament.jsonObject["score"] = score;
+                UdpClient udpClient = new UdpClient(SpinTournament.client, SpinTournament.port);
+                string str = SpinTournament.jsonObject.ToString();
+                Logger.LogMessage(str);
+                byte[] bytes = Encoding.ASCII.GetBytes("%%DataStart%%" + str + "%%DataEnd%%");
+                try
+                {
+                    udpClient.SendAsync(bytes, bytes.Length);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex.ToString());
+                }
+            }*/
+            public static void sendDataThread(object sender)
+            {
+                dynamic dSender = sender;
+                SpinTournament.jsonObject["score"] = dSender.score;
+                UdpClient udpClient = new UdpClient(SpinTournament.client, SpinTournament.port);
+                string str = SpinTournament.jsonObject.ToString();
+                Logger.LogMessage(str);
+                byte[] bytes = Encoding.ASCII.GetBytes("%%DataStart%%" + str + "%%DataEnd%%");
+                try
+                {
+                    udpClient.SendAsync(bytes, bytes.Length);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex.ToString());
                 }
             }
         }        
