@@ -48,7 +48,7 @@ namespace TournamentTool
                 SpinTournament.jsonObjectString = SpinTournament.jsonObjectString + "\"steamName\":\"" + SpinTournament.SteamName + "\"";
                 SpinTournament.jsonObjectString += "}";
                 SpinTournament.jsonObject = JSONNode.Parse(SpinTournament.jsonObjectString);
-                Logger.LogMessage(SteamUser.GetSteamID().ToString());
+                Logger.LogMessage($"Welcome to the tournament, {SpinTournament.SteamName} (ID: {SpinTournament.SteamID}), GLHF!");
             }
 
             [HarmonyPatch(typeof(Track), "PlayTrack"), HarmonyPostfix]
@@ -155,7 +155,6 @@ namespace TournamentTool
             public static Timer timer = new Timer(timerTick, null, Timeout.Infinite, Timeout.Infinite);
             public static bool canSend = true;
             public static bool triedToSendInInvalidPeriod = false;
-
             public static Thread t = new Thread(new ParameterizedThreadStart(sendDataThread));
 
             public static bool PlayingTrack = false;
@@ -228,7 +227,6 @@ namespace TournamentTool
                 SpinTournament.jsonObject["score"] = score;
                 UdpClient udpClient = new UdpClient(SpinTournament.client, SpinTournament.port);
                 string str = SpinTournament.jsonObject.ToString();
-                Logger.LogMessage(str);
                 byte[] bytes = Encoding.ASCII.GetBytes("%%DataStart%%" + str + "%%DataEnd%%");
                 try
                 {
@@ -245,7 +243,6 @@ namespace TournamentTool
                 SpinTournament.jsonObject["score"] = dSender.score;
                 UdpClient udpClient = new UdpClient(SpinTournament.client, SpinTournament.port);
                 string str = SpinTournament.jsonObject.ToString();
-                Logger.LogMessage(str);
                 byte[] bytes = Encoding.ASCII.GetBytes("%%DataStart%%" + str + "%%DataEnd%%");
                 try
                 {
