@@ -75,11 +75,11 @@ namespace TournamentTool
                 SpinTournament.resetdata();
             }
 
-            [HarmonyPatch(typeof(XDLevelCompleteMenu), nameof(XDLevelCompleteMenu.ProcessSongComplete))]
+            [HarmonyPatch(typeof(XDLevelCompleteMenu), nameof(XDLevelCompleteMenu.ProcessSongComplete)), HarmonyPostfix]
             private static void ProcessSongComplete_Postfix(ref PlayableTrackData trackData, ref PlayState playState,
                 XDLevelCompleteMenu __instance)
             {
-                SpinTournament.score = Int32.Parse(playState.TotalScore.ToString());
+                SpinTournament.score = playState.TotalScore;
                 SpinTournament.sendScoreData(SpinTournament.score);
             }
             
@@ -146,7 +146,6 @@ namespace TournamentTool
         static class SpinTournament
         {
             public static void timerTick(object state) {
-                canSend = true;
                 timer.Change(Timeout.Infinite, Timeout.Infinite);
                 if (triedToSendInInvalidPeriod)
                 {
@@ -156,6 +155,7 @@ namespace TournamentTool
                         sendDataThread(new { score });
                     }
                 }
+                canSend = true;
                 triedToSendInInvalidPeriod = false;
             }
 
@@ -253,7 +253,6 @@ namespace TournamentTool
                 SpinTournament.jsonObject["score"] = dSender.score;
                 UdpClient udpClient = new UdpClient(SpinTournament.client, SpinTournament.port);
                 string str = SpinTournament.jsonObject.ToString();
-                Logger.LogMessage(str);
                 byte[] bytes = Encoding.ASCII.GetBytes("%%DataStart%%" + str + "%%DataEnd%%");
                 try
                 {

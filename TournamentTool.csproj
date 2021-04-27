@@ -59,9 +59,9 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="UnhollowerBaseLib, Version=0.4.14.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="UnhollowerBaseLib">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Spin Rhythm\BepInEx\core\UnhollowerBaseLib.dll</HintPath>
+      <HintPath>BepInEx\core\UnhollowerBaseLib.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule, Version=3.7.1.6, Culture=neutral, PublicKeyToken=null">
       <HintPath>BepInEx\unhollowed\UnityEngine.CoreModule.dll</HintPath>
