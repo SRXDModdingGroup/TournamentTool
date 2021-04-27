@@ -75,6 +75,14 @@ namespace TournamentTool
                 SpinTournament.resetdata();
             }
 
+            [HarmonyPatch(typeof(XDLevelCompleteMenu), nameof(XDLevelCompleteMenu.ProcessSongComplete))]
+            private static void ProcessSongComplete_Postfix(ref PlayableTrackData trackData, ref PlayState playState,
+                XDLevelCompleteMenu __instance)
+            {
+                SpinTournament.score = Int32.Parse(playState.TotalScore.ToString());
+                SpinTournament.sendScoreData(SpinTournament.score);
+            }
+            
             [HarmonyPatch(typeof(TrackGameplayLogic), nameof(TrackGameplayLogic.AddScoreIfPossible)), HarmonyPostfix]
             public static void AddScoreIfPossible_Postfix(Track __instance, PlayState playState, int pointsToAdd, int comboIncrease, NoteTimingAccuracy noteTimingAccuracy, float trackTime, int noteIndex)
             {
