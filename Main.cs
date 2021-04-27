@@ -1,4 +1,4 @@
-﻿using BepInEx;
+using BepInEx;
 using BepInEx.IL2CPP;
 using HarmonyLib;
 using SimpleJSON;
@@ -52,7 +52,6 @@ namespace TournamentTool
             }
 
             [HarmonyPatch(typeof(Track), "PlayTrack"), HarmonyPostfix]
-            // Token: 0x06000114 RID: 276 RVA: 0x00005209 File Offset: 0x00003409
             public static void PlayTrack_Postfix(Track __instance)
             {
                 SpinTournament.PlayingTrack = true;
@@ -75,6 +74,14 @@ namespace TournamentTool
                 SpinTournament.resetdata();
             }
 
+            [HarmonyPatch(typeof(XDLevelCompleteMenu), nameof(XDLevelCompleteMenu.ProcessSongComplete))]
+            private static void ProcessSongComplete_Postfix(ref PlayableTrackData trackData, ref PlayState playState,
+                XDLevelCompleteMenu __instance)
+            {
+                SpinTournament.score = Int32.Parse(playState.TotalScore.ToString());
+                SpinTournament.sendScoreData(SpinTournament.score);
+            }
+            
             [HarmonyPatch(typeof(TrackGameplayLogic), nameof(TrackGameplayLogic.AddScoreIfPossible)), HarmonyPostfix]
             public static void AddScoreIfPossible_Postfix(Track __instance, PlayState playState, int pointsToAdd, int comboIncrease, NoteTimingAccuracy noteTimingAccuracy, float trackTime, int noteIndex)
             {
