@@ -159,7 +159,7 @@ namespace TournamentTool
                 triedToSendInInvalidPeriod = false;
             }
 
-            public static int msInterval = 500;
+            public static int msInterval = 250;
             public static Timer timer = new Timer(timerTick, null, Timeout.Infinite, Timeout.Infinite);
             public static bool canSend = true;
             public static bool triedToSendInInvalidPeriod = false;
