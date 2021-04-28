@@ -220,9 +220,17 @@ namespace TournamentTool
                         canSend = false;
                         timer.Change(msInterval, Timeout.Infinite);
 
-                        if (!t.IsAlive)
+                        if (t.ThreadState != ThreadState.Running)
                         {
-                            sendDataThread(new { score });
+                            try 
+                            {
+                                t.Start(new { score });
+                            }
+                            catch(Exception error)
+                            {
+                                sendDataThread(new { score });
+                            }
+                            
                         }
                     }
                     else
@@ -261,6 +269,9 @@ namespace TournamentTool
                 catch (Exception ex)
                 {
                     Logger.LogError(ex.ToString());
+                }
+                if (t.ThreadState != ThreadState.Stopped) {
+                    t.Abort();
                 }
             }
         }        
