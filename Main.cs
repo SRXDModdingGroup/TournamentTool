@@ -83,19 +83,17 @@ namespace TournamentTool
                 SpinTournament.sendScoreData(SpinTournament.score);
             }
             
-            [HarmonyPatch(typeof(TrackGameplayLogic), nameof(TrackGameplayLogic.AddScoreIfPossible)), HarmonyPostfix]
-            public static void AddScoreIfPossible_Postfix(Track __instance, PlayState playState, int pointsToAdd, int comboIncrease, NoteTimingAccuracy noteTimingAccuracy, float trackTime, int noteIndex)
-            {
-                if (SpinTournament.PlayingTrack)
-                {
-                    SpinTournament.score = playState.scoreState.totalNoteScore._value;
-                    SpinTournament.sendScoreData(SpinTournament.score);
-                }
-            }
+            // [HarmonyPatch(typeof(TrackGameplayLogic), nameof(TrackGameplayLogic.AddScoreIfPossible)), HarmonyPostfix]
+            // public static void AddScoreIfPossible_Postfix(Track __instance, PlayState playState, int pointsToAdd, int comboIncrease, NoteTimingAccuracy noteTimingAccuracy, float trackTime, int noteIndex)
+            // {
+            //     if (SpinTournament.PlayingTrack)
+            //     {
+            //         SpinTournament.score = playState.scoreState.totalNoteScore._value;
+            //         SpinTournament.sendScoreData(SpinTournament.score);
+            //     }
+            // }
 
             [HarmonyPatch(typeof(TrackGameplayFeedbackObjects), "PlayTimingFeedback"), HarmonyPrefix]
-
-            // Token: 0x06000116 RID: 278 RVA: 0x00005258 File Offset: 0x00003458
             public static void PlayTimingFeedback_Prefix(PlayState playState, NoteTimingAccuracy noteTimingAccuracy)
             {
                 bool flag = !SpinTournament.PlayingTrack;
@@ -139,6 +137,8 @@ namespace TournamentTool
                             }
                         }
                     }
+                    SpinTournament.score = playState.scoreState.totalNoteScore._value;
+                    SpinTournament.sendScoreData(SpinTournament.score);
                 }
             }
         }
