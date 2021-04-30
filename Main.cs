@@ -1,4 +1,4 @@
-﻿using BepInEx;
+using BepInEx;
 using BepInEx.IL2CPP;
 using HarmonyLib;
 using SimpleJSON;
