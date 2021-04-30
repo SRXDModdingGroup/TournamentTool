@@ -1,4 +1,4 @@
-﻿using BepInEx;
+using BepInEx;
 using BepInEx.IL2CPP;
 using HarmonyLib;
 using SimpleJSON;
@@ -75,19 +75,25 @@ namespace TournamentTool
                 SpinTournament.resetdata();
             }
 
-            [HarmonyPatch(typeof(TrackGameplayLogic), nameof(TrackGameplayLogic.AddScoreIfPossible)), HarmonyPostfix]
-            public static void AddScoreIfPossible_Postfix(Track __instance, PlayState playState, int pointsToAdd, int comboIncrease, NoteTimingAccuracy noteTimingAccuracy, float trackTime, int noteIndex)
+            [HarmonyPatch(typeof(XDLevelCompleteMenu), nameof(XDLevelCompleteMenu.ProcessSongComplete)), HarmonyPostfix]
+            private static void ProcessSongComplete_Postfix(ref PlayableTrackData trackData, ref PlayState playState,
+                XDLevelCompleteMenu __instance)
             {
-                if (SpinTournament.PlayingTrack)
-                {
-                    SpinTournament.score = playState.scoreState.totalNoteScore._value;
-                    SpinTournament.sendScoreData(SpinTournament.score);
-                }
+                SpinTournament.score = playState.TotalScore;
+                SpinTournament.sendScoreData(SpinTournament.score);
             }
+            
+            // [HarmonyPatch(typeof(TrackGameplayLogic), nameof(TrackGameplayLogic.AddScoreIfPossible)), HarmonyPostfix]
+            // public static void AddScoreIfPossible_Postfix(Track __instance, PlayState playState, int pointsToAdd, int comboIncrease, NoteTimingAccuracy noteTimingAccuracy, float trackTime, int noteIndex)
+            // {
+            //     if (SpinTournament.PlayingTrack)
+            //     {
+            //         SpinTournament.score = playState.scoreState.totalNoteScore._value;
+            //         SpinTournament.sendScoreData(SpinTournament.score);
+            //     }
+            // }
 
             [HarmonyPatch(typeof(TrackGameplayFeedbackObjects), "PlayTimingFeedback"), HarmonyPrefix]
-
-            // Token: 0x06000116 RID: 278 RVA: 0x00005258 File Offset: 0x00003458
             public static void PlayTimingFeedback_Prefix(PlayState playState, NoteTimingAccuracy noteTimingAccuracy)
             {
                 bool flag = !SpinTournament.PlayingTrack;
@@ -131,12 +137,35 @@ namespace TournamentTool
                             }
                         }
                     }
+                    SpinTournament.score = playState.scoreState.totalNoteScore._value;
+                    SpinTournament.sendScoreData(SpinTournament.score);
                 }
             }
         }
 
         static class SpinTournament
         {
+            public static void timerTick(object state) {
+                timer.Change(Timeout.Infinite, Timeout.Infinite);
+                if (triedToSendInInvalidPeriod)
+                {
+                    Thread.Sleep(msInterval/2);
+                    if (!t.IsAlive)
+                    {
+                        sendDataThread(new { score });
+                    }
+                }
+                canSend = true;
+                triedToSendInInvalidPeriod = false;
+            }
+
+            public static int msInterval = 250;
+            public static Timer timer = new Timer(timerTick, null, Timeout.Infinite, Timeout.Infinite);
+            public static bool canSend = true;
+            public static bool triedToSendInInvalidPeriod = false;
+
+            public static Thread t = new Thread(new ParameterizedThreadStart(sendDataThread));
+
             public static bool PlayingTrack = false;
 
             public static string SteamName = "";
@@ -187,9 +216,27 @@ namespace TournamentTool
                 bool flag = !SpinTournament.acceptingScores;
                 if (!flag)
                 {
+                    if (canSend) {
+                        canSend = false;
+                        timer.Change(msInterval, Timeout.Infinite);
 
-                            sendDataThread(new { score });
-
+                        if (t.ThreadState != ThreadState.Running)
+                        {
+                            try 
+                            {
+                                t.Start(new { score });
+                            }
+                            catch(Exception error)
+                            {
+                                sendDataThread(new { score });
+                            }
+                            
+                        }
+                    }
+                    else
+                    {
+                        triedToSendInInvalidPeriod = true;
+                    }
                 }
             }
             /*public static void sendDataBypass(int score)
@@ -197,6 +244,7 @@ namespace TournamentTool
                 SpinTournament.jsonObject["score"] = score;
                 UdpClient udpClient = new UdpClient(SpinTournament.client, SpinTournament.port);
                 string str = SpinTournament.jsonObject.ToString();
+                Logger.LogMessage(str);
                 byte[] bytes = Encoding.ASCII.GetBytes("%%DataStart%%" + str + "%%DataEnd%%");
                 try
                 {
@@ -221,6 +269,9 @@ namespace TournamentTool
                 catch (Exception ex)
                 {
                     Logger.LogError(ex.ToString());
+                }
+                if (t.ThreadState != ThreadState.Stopped) {
+                    t.Abort();
                 }
             }
         }        
