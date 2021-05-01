@@ -1,4 +1,4 @@
-using BepInEx;
+﻿using BepInEx;
 using BepInEx.IL2CPP;
 using HarmonyLib;
 using SimpleJSON;
@@ -150,10 +150,7 @@ namespace TournamentTool
                 if (triedToSendInInvalidPeriod)
                 {
                     Thread.Sleep(msInterval/2);
-                    if (!t.IsAlive)
-                    {
                         sendDataThread(new { score });
-                    }
                 }
                 canSend = true;
                 triedToSendInInvalidPeriod = false;
@@ -163,8 +160,6 @@ namespace TournamentTool
             public static Timer timer = new Timer(timerTick, null, Timeout.Infinite, Timeout.Infinite);
             public static bool canSend = true;
             public static bool triedToSendInInvalidPeriod = false;
-
-            public static Thread t = new Thread(new ParameterizedThreadStart(sendDataThread));
 
             public static bool PlayingTrack = false;
 
@@ -220,18 +215,7 @@ namespace TournamentTool
                         canSend = false;
                         timer.Change(msInterval, Timeout.Infinite);
 
-                        if (t.ThreadState != ThreadState.Running)
-                        {
-                            try 
-                            {
-                                t.Start(new { score });
-                            }
-                            catch(Exception error)
-                            {
-                                sendDataThread(new { score });
-                            }
-                            
-                        }
+                            sendDataThread(new { score });
                     }
                     else
                     {
@@ -269,9 +253,6 @@ namespace TournamentTool
                 catch (Exception ex)
                 {
                     Logger.LogError(ex.ToString());
-                }
-                if (t.ThreadState != ThreadState.Stopped) {
-                    t.Abort();
                 }
             }
         }        
